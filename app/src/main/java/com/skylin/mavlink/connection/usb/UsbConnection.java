@@ -4,38 +4,32 @@ import android.content.Context;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 
-import com.skylin.mavlink.connection.MavLinkConnection;
-import com.skylin.mavlink.model.ConnectionParameter;
-import com.skylin.mavlink.model.UsbConnectionParameter;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
 import sjj.alog.Log;
 
-public class UsbConnection extends MavLinkConnection {
+public class UsbConnection {
 
 	private static final int FTDI_DEVICE_VENDOR_ID = 0x0403;
 
 	private Context context;
-	protected final UsbConnectionParameter usbConnectionParameter ;
+    private final int baudRate;
 
-	private UsbConnectionImpl mUsbConnection;
+    private UsbConnectionImpl mUsbConnection;
 
-	public UsbConnection(Context context, UsbConnectionParameter usbConnectionParameter) {
+	public UsbConnection(Context context, int baudRate) {
 		this.context = context;
-		this.usbConnectionParameter = usbConnectionParameter;
-	}
+        this.baudRate = baudRate;
+    }
 
-	@Override
 	protected void closeConnection() throws IOException {
 		if (mUsbConnection != null) {
 			mUsbConnection.closeUsbConnection();
 		}
 	}
 
-	@Override
 	protected void openConnection() throws IOException {
 		if (mUsbConnection != null) {
 			try {
@@ -49,7 +43,7 @@ public class UsbConnection extends MavLinkConnection {
 		}
 
 		if (isFTDIdevice(context)) {
-			final UsbConnectionImpl tmp = new UsbFTDIConnection(context, usbConnectionParameter.getBaudRate());
+			final UsbConnectionImpl tmp = new UsbFTDIConnection(context, baudRate);
 			try {
 				tmp.openUsbConnection();
 
@@ -64,7 +58,7 @@ public class UsbConnection extends MavLinkConnection {
 
 		// Fallback
 		if (mUsbConnection == null) {
-			final UsbConnectionImpl tmp = new UsbCDCConnection(context, usbConnectionParameter.getBaudRate());
+			final UsbConnectionImpl tmp = new UsbCDCConnection(context, baudRate);
 
 			// If an error happens here, let it propagate up the call chain since this is the
 			// fallback.
@@ -89,7 +83,6 @@ public class UsbConnection extends MavLinkConnection {
 		return false;
 	}
 
-	@Override
 	protected int readDataBlock(byte[] buffer) throws IOException {
 		if (mUsbConnection == null) {
 			throw new IOException("Uninitialized usb connection.");
@@ -98,18 +91,12 @@ public class UsbConnection extends MavLinkConnection {
 		return mUsbConnection.readDataBlock(buffer);
 	}
 
-	@Override
 	protected void sendBuffer(byte[] buffer) throws IOException {
 		if (mUsbConnection == null) {
 			throw new IOException("Uninitialized usb connection.");
 		}
 
 		mUsbConnection.sendBuffer(buffer);
-	}
-
-	@Override
-	public int getConnectionType() {
-		return ConnectionParameter.usb;
 	}
 
 	@Override
